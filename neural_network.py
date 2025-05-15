@@ -80,7 +80,7 @@ class NeuralNetwork():
             self.layers[i] = self.activation_functions[i-1](self.z_values[i].copy())
 
         # Return output
-        return self.layers[-1]
+        return np.array(self.layers[-1])
 
 
     def reset_layers(self):
@@ -91,16 +91,82 @@ class NeuralNetwork():
     def get_output(self):
         return self.layers[-1]
 
-    def back_propogate_deep_q_learning(self, target_q, target_a):
-        # Delta_L = Grad(CostFn)(target) * OutputActivationFunctionDerivative, which in our case is: 
-        error = self.layers[i][target_a] - target_q # * 1 since output activation function f(x) = x
+    # Adapted this code from http://neuralnetworksanddeeplearning.com/chap2.html
+    def back_propogate(self, error):
+        # Get backpropogation values for each weights matrix and bias vector
+        delta_w = [np.zeros(weight_matrix.shape) for weight_matrix in self.weights]
+        delta_b = [np.zeros(bias_vector.shape) for bias_vector in self.biases]
+
+        # Get initial backpropogation values
+        delta_b[-1] = error.copy()
+        delta_w[-1] = np.outer(error, self.layers[-1].transpose())
+
+        # Backpropogate throughout layers
+        delta = error
+        for l in range(2, len(self.layers)):
+            act_fn_dx = self.activation_function_derivatives[-l](self.z_values[-l])
+            delta = np.dot(self.weights[-l+1].transpose(), delta) * act_fn_dx
+            delta_b[-l] = delta
+            delta_w[-l] = np.outer(delta, self.layers[-l-1])
+        return delta_b, delta_w
+
+    def update_network(self, lr, error):
+        # Get error values
+        delta_b, delta_w = self.back_propogate(error)
+
+        # Update weights
+        for i in range(len(self.weights)):
+            for j in range(len(self.weights[i])):
+                for k in range(len(self.weights[i][j])):
+                    self.weights[i][j][k] += lr * delta_w[i][j][k]
+                self.biases[i][j] += lr * delta_b[i][j]
+
+    def __str__(self):
+        to_ret = ''
+        for weight_matrix in self.weights:
+            to_ret += str(weight_matrix) + '\n'
+        return to_ret[:-1]
 
 
 
 if __name__ == '__main__':
     sigmoid = lambda x: 1/(1 + np.exp(-x))
-    dx = lambda x: sigmoid(x)(1 - sigmoid(x))
-    nn = NeuralNetwork((3, 2, 1), (sigmoid, sigmoid), (dx, dx))
-    nn.set_weights([np.array([[-1, 0.5, 1], [-2, 1, -1]]), np.array([[2,1]])])
-    nn.set_biases([np.array([1, 2]), np.array([-1])])
-    print(nn.feed_forward([-1, 1, -1]))
+    sigmoid_dx = lambda x: sigmoid(x) * (1 - sigmoid(x))
+    relu = lambda x: np.array([np.max(0, i) for i in x])
+    def relu_dx(x):
+        to_ret = []
+        for val in x:
+            if val > 0:
+                to_ret.append(1)
+            else:
+                to_ret.append(0)
+        return np.array(to_ret)
+
+    # Initialize Network
+    # nn = NeuralNetwork((2, 2, 2), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
+    # nn.set_weights([np.array([[0.15, 0.2], [0.25, 0.3]]), np.array([[0.4, 0.45], [0.5, 0.55]])])
+    # nn.set_biases([np.array([0.35, 0.35]), np.array([0.6, 0.6])])
+    nn = NeuralNetwork((2, 2, 1), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
+    # print(nn)
+    nn.set_weights([np.array([[0.15, 0.2], [0.25, 0.3]]), np.array([[0.4, 0.45]])])
+    nn.set_biases([np.array([0.35, 0.35]), np.array([0.6])])
+
+    # Feedforward
+    print("Network Output:")
+    # print(output:=nn.feed_forward([0.05, 0.1]))
+    print(output:=nn.feed_forward(np.array([0.05, 0.1])))
+
+
+    # Get error
+    # Delta_L = Grad(CostFn)(target) * OutputActivationFunctionDerivative, which in our case is: 
+    # error = np.zeros(len(self.layers[-1]))
+    # error[target_a] = (self.layers[-1][target_a] - target_q)
+    # error = error * self.activation_function_derivatives[-1](self.z_values[-1]) # * 1 since output activation function f(x) = x
+
+    # Update network using backpropogation
+    error = output - np.array([0.01])
+    print("\nError of output:")
+    print(error)
+    nn.update_network(0.5, error)
+    print("\nFinal network:")
+    print(nn)
