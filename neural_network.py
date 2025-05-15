@@ -99,7 +99,7 @@ class NeuralNetwork():
 
         # Get initial backpropogation values
         delta_b[-1] = error.copy()
-        delta_w[-1] = np.outer(error, self.layers[-1].transpose())
+        delta_w[-1] = np.outer(error, self.layers[-2])
 
         # Backpropogate throughout layers
         delta = error
@@ -118,21 +118,34 @@ class NeuralNetwork():
         for i in range(len(self.weights)):
             for j in range(len(self.weights[i])):
                 for k in range(len(self.weights[i][j])):
-                    self.weights[i][j][k] += lr * delta_w[i][j][k]
-                self.biases[i][j] += lr * delta_b[i][j]
+                    self.weights[i][j][k] -= lr * delta_w[i][j][k]
+                self.biases[i][j] -= lr * delta_b[i][j]
 
     def __str__(self):
         to_ret = ''
-        for weight_matrix in self.weights:
+        for i, weight_matrix in enumerate(self.weights):
+            to_ret += f'Layer {i}:\n'
+            to_ret += f'Weights:\n'
             to_ret += str(weight_matrix) + '\n'
-        return to_ret[:-1]
+            to_ret += 'Biases:\n'
+            to_ret += str(self.biases[i])
+            to_ret += '\n\n'
+        return to_ret[:-2]
 
 
 
 if __name__ == '__main__':
+    # Activation functions
     sigmoid = lambda x: 1/(1 + np.exp(-x))
     sigmoid_dx = lambda x: sigmoid(x) * (1 - sigmoid(x))
-    relu = lambda x: np.array([np.max(0, i) for i in x])
+    def relu(x):
+        to_ret = []
+        for val in x:
+            if val > 0:
+                to_ret.append(val)
+            else:
+                to_ret.append(0)
+        return np.array(to_ret)
     def relu_dx(x):
         to_ret = []
         for val in x:
@@ -142,19 +155,116 @@ if __name__ == '__main__':
                 to_ret.append(0)
         return np.array(to_ret)
 
-    # Initialize Network
-    # nn = NeuralNetwork((2, 2, 2), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
-    # nn.set_weights([np.array([[0.15, 0.2], [0.25, 0.3]]), np.array([[0.4, 0.45], [0.5, 0.55]])])
-    # nn.set_biases([np.array([0.35, 0.35]), np.array([0.6, 0.6])])
-    nn = NeuralNetwork((2, 2, 1), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
-    # print(nn)
-    nn.set_weights([np.array([[0.15, 0.2], [0.25, 0.3]]), np.array([[0.4, 0.45]])])
-    nn.set_biases([np.array([0.35, 0.35]), np.array([0.6])])
+
+
+    # Create a first neural network
+    print("==================================================================================")
+    print("NETWORK 1:")
+    nn = NeuralNetwork((2, 2, 2), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
+    nn.set_weights([np.array([[0.15, 0.2], [0.25, 0.3]]), np.array([[0.4, 0.45], [0.5, 0.55]])])
+    nn.set_biases([np.array([0.35, 0.35]), np.array([0.6, 0.6])])
 
     # Feedforward
     print("Network Output:")
-    # print(output:=nn.feed_forward([0.05, 0.1]))
-    print(output:=nn.feed_forward(np.array([0.05, 0.1])))
+    print(output:=nn.feed_forward([0.05, 0.1]))
+
+    # Update network using backpropogation
+    target = np.array([0.01, 0.99])
+    error = (output - target) * sigmoid_dx(nn.z_values[-1])
+    print("\nError of output:")
+    print(error)
+    nn.update_network(0.5, error)
+    print("\nFinal network:")
+    print(nn)
+    print("==================================================================================")
+
+
+
+    # Create a second neural network
+    print("\n\n\n==================================================================================")
+    print("NETWORK 2:")
+    nn = NeuralNetwork((2, 2, 1), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
+    nn.set_weights([np.array([[0.15, 0.2], [0.25, 0.3]]), np.array([[0.4, 0.45]])])
+    nn.set_biases([np.array([0.35, 0.35]), np.array([0.6])])
+
+    # Test feedforward
+    print("Network Output:")
+    print(output:=nn.feed_forward([0.05, 0.1]))
+
+    # Test backpropogation
+    target = np.array([0.01])
+    error = (output - target) * sigmoid_dx(nn.z_values[-1])
+    print("\nError of output:")
+    print(error)
+    nn.update_network(0.5, error)
+    print("\nFinal network:")
+    print(nn)
+    print("==================================================================================")
+
+
+
+    # Create a third neural network
+    print("\n\n\n==================================================================================")
+    print("NETWORK 3:")
+    nn = NeuralNetwork((3, 4, 2), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
+    nn.set_weights([np.array([
+                              [0.2,  0.4,  0.1],
+                              [0.5,  0.3,  0.7],
+                              [0.6,  0.9,  0.2],
+                              [0.8,  0.1,  0.5]
+                             ]), 
+                    np.array([
+                              [0.3,  0.7, 0.5, 0.9],
+                              [0.8,  0.2, 0.6, 0.4]
+                             ]),
+                   ])
+    nn.set_biases([np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.2, 0.5])])
+    
+    # Test feedforward
+    print("Network Output:")
+    print(output:=nn.feed_forward(np.array([0.1, 0.5, 0.9])))
+
+    # Test backpropogation
+    target = np.array([0.0, 1.0])
+    error = (output - target) * sigmoid_dx(nn.z_values[-1])
+    print("\nError of output:")
+    print(error)
+    nn.update_network(0.5, error)
+    print("\nFinal network:")
+    print(nn)
+    print("==================================================================================")
+
+
+
+    print("\n\n\n==================================================================================")
+    print("NETWORK 4:")
+    nn = NeuralNetwork((3, 4, 2), (relu, sigmoid), (relu_dx, sigmoid_dx))
+    nn.set_weights([np.array([
+                              [0.2,  0.4,  0.1],
+                              [0.5,  0.3,  0.7],
+                              [0.6,  0.9,  0.2],
+                              [0.8,  0.1,  0.5]
+                             ]), 
+                    np.array([
+                              [0.3,  0.7, 0.5, 0.9],
+                              [0.8,  0.2, 0.6, 0.4]
+                             ]),
+                   ])
+    nn.set_biases([np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.15, 0.5])])
+    
+    # Test feedforward
+    print("Network Output:")
+    print(output:=nn.feed_forward(np.array([0.9, 0.1, 0.8])))
+
+    # Test backpropogation
+    target = np.array([0.2, 0.6])
+    error = (output - target) * relu_dx(nn.z_values[-1])
+    print("\nError of output:")
+    print(error)
+    nn.update_network(0.1, error)
+    print("\nFinal network:")
+    print(nn)
+    print("==================================================================================")
 
 
     # Get error
@@ -162,11 +272,3 @@ if __name__ == '__main__':
     # error = np.zeros(len(self.layers[-1]))
     # error[target_a] = (self.layers[-1][target_a] - target_q)
     # error = error * self.activation_function_derivatives[-1](self.z_values[-1]) # * 1 since output activation function f(x) = x
-
-    # Update network using backpropogation
-    error = output - np.array([0.01])
-    print("\nError of output:")
-    print(error)
-    nn.update_network(0.5, error)
-    print("\nFinal network:")
-    print(nn)
