@@ -59,14 +59,14 @@ class NeuralNetwork():
             self.biases[i] = bias_vectors[i].copy()
         
 
-    def feed_forward(self, input):
+    def feed_forward(self, nn_input):
         # Check length of input is correct
-        if len(self.layers[0]) != len(input):
+        if len(self.layers[0]) != len(nn_input):
             raise Exception
 
         # Copy input across to input layer
         for i in range(len(self.layers[0])):
-            self.layers[0][i] = input[i]
+            self.layers[0][i] = nn_input[i]
 
         # Feed forward through the layers
         self.layers[0] = np.array(self.layers[0])

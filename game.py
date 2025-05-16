@@ -17,6 +17,14 @@ class ConnectFour():
                 return
         raise Exception
 
+    def is_legal_move(self, col: int):
+        if col not in range(0, 7):
+            raise Exception
+        for r in range(6):
+            if self.board[r][col] == 0:
+                return True
+        return False
+
     def get_moves(self):
         # set all moves to illegal
         moves = [False for i in range(len(self.board[0]))]
@@ -107,6 +115,9 @@ class ConnectFour():
 
     def get_winner(self):
         return self.winner
+
+    def get_board(self):
+        return self.board
 
 if __name__ == '__main__':
     game = ConnectFour()
