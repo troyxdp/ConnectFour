@@ -1,13 +1,14 @@
 import numpy as np
 from game import ConnectFour
 from neural_network import NeuralNetwork
+import copy
 
 class Agent():
     def __init__(
             self, 
             is_player_one: bool,
             game=None, 
-            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.1, 'three_in_a_row': 0.75}
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.01, 'three_in_a_row': 0.75}
         ):
         # Check results scores is valid
         if results_scores['win'] is None or results_scores['loss'] is None or results_scores['draw'] is None or results_scores['ongoing'] is None or results_scores['three_in_a_row'] is None:
@@ -124,7 +125,7 @@ class RandomAgent(Agent):
     def __init__(
             self,  
             is_player_one: bool, 
-            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.1, 'three_in_a_row': 0.75},
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.01, 'three_in_a_row': 1},
             game=None
         ):
         super().__init__(game, is_player_one, results_scores)
@@ -155,7 +156,7 @@ class ConnectFourAgent(Agent):
             self, 
             is_player_one: bool, 
             nn: NeuralNetwork,
-            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.1, 'three_in_a_row': 0.75}, 
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.01, 'three_in_a_row': 0.75}, 
             game=None
         ):
         super().__init__(game, is_player_one, results_scores)
@@ -218,7 +219,7 @@ class ConnectFourAgent(Agent):
         return self.nn_target.feed_forward(nn_input)
 
     def copy_to_target(self):
-        self.nn_target = self.nn_pred.copy()
+        self.nn_target = copy.copy(self.nn_pred)
 
     def reinforce(self, lr, delta):
         self.nn_pred.update_network(lr, delta)
