@@ -1,12 +1,15 @@
 import numpy as np
+import os
 
 class NeuralNetwork():
-    def __init__(self, num_neurons, activation_functions, activation_function_derivatives):
+    def __init__(self, num_neurons, activation_functions):
         # Check for invalid initialization parameters
         if (len(num_neurons) - 1) != len(activation_functions):
-            raise Exception
-        if not len(activation_functions) == len(activation_function_derivatives):
-            raise Exception
+            raise Exception("Error: incorrect number of activation functions given")
+
+        # Check network has at least one hidden layer
+        if (len(num_neurons) < 3):
+            raise Exception("Error: network must have at least one hidden layer")
 
         # z values
         self.z_values = []
@@ -22,15 +25,51 @@ class NeuralNetwork():
         for i in range(1, len(num_neurons)):
             self.weights.append(np.random.rand(num_neurons[i], num_neurons[i-1]))
 
+        # Initialize biases
         self.biases = []
         for i in range(1, len(num_neurons)):
             self.biases.append(np.random.rand(num_neurons[i]))
 
+        # Save the number of neurons in each layer
+        self.num_neurons = np.array(num_neurons)
+
         # Initialize activation functions and their derivatives
-        self.activation_functions = activation_functions
-        self.activation_function_derivatives = activation_function_derivatives
+        self.activation_functions = []
+        self.activation_function_derivatives = []
+        for activation_function in activation_functions:
+            if activation_function == 'sigmoid':
+                self.activation_functions.append(self.sigmoid)
+                self.activation_function_derivatives.append(self.sigmoid_dx)
+            else:
+                self.activation_functions.append(self.relu)
+                self.activation_function_derivatives.append(self.relu_dx)
 
+    # ACTIVATION FUNCTIONS
+    def sigmoid(self, x):
+        return 1/(1 + np.exp(-x))
 
+    def sigmoid_dx(self, x):
+        return self.sigmoid(x) * (1 - self.sigmoid(x))
+
+    def relu(self, x):
+        to_ret = []
+        for val in x:
+            if val > 0:
+                to_ret.append(val)
+            else:
+                to_ret.append(0)
+        return np.array(to_ret)
+
+    def relu_dx(self, x):
+        to_ret = []
+        for val in x:
+            if val > 0:
+                to_ret.append(1)
+            else:
+                to_ret.append(0)
+        return np.array(to_ret)
+
+    # SETTER METHODS
     def set_weights(self, weight_matrices):
         # Check number of weight matrices is correct
         if len(weight_matrices) != len(self.weights):
@@ -44,7 +83,6 @@ class NeuralNetwork():
         for i in range(len(weight_matrices)):
             self.weights[i] = weight_matrices[i].copy()
 
-
     def set_biases(self, bias_vectors):
         # Check number of bias vectors is correct
         if len(bias_vectors) != len(self.biases):
@@ -57,8 +95,8 @@ class NeuralNetwork():
         # Copy values across
         for i in range(len(self.biases)):
             self.biases[i] = bias_vectors[i].copy()
-        
 
+    # METHODS RELATED TO FEED FORWARD OF INPUT
     def feed_forward(self, nn_input):
         # Check length of input is correct
         if len(self.layers[0]) != len(nn_input):
@@ -82,37 +120,32 @@ class NeuralNetwork():
         # Return output
         return np.array(self.layers[-1])
 
-
-    def reset_layers(self):
-        for layer in self.layers:
-            for i in range(len(layer)):
-                layer[i] = 0
-
     def get_output(self):
         return self.layers[-1]
 
-    # Adapted this code from http://neuralnetworksanddeeplearning.com/chap2.html
-    def back_propogate(self, error):
+    # METHODS RELATED TO UPDATING NETWORK - Adapted this code from http://neuralnetworksanddeeplearning.com/chap2.html
+    def back_propogate(self, delta):
         # Get backpropogation values for each weights matrix and bias vector
         delta_w = [np.zeros(weight_matrix.shape) for weight_matrix in self.weights]
         delta_b = [np.zeros(bias_vector.shape) for bias_vector in self.biases]
 
         # Get initial backpropogation values
-        delta_b[-1] = error.copy()
-        delta_w[-1] = np.outer(error, self.layers[-2])
+        delta_b[-1] = delta.copy()
+        delta_w[-1] = np.outer(delta, self.layers[-2])
 
         # Backpropogate throughout layers
-        delta = error
+        d = delta.copy()
         for l in range(2, len(self.layers)):
             act_fn_dx = self.activation_function_derivatives[-l](self.z_values[-l])
-            delta = np.dot(self.weights[-l+1].transpose(), delta) * act_fn_dx
-            delta_b[-l] = delta
-            delta_w[-l] = np.outer(delta, self.layers[-l-1])
+            d = np.dot(self.weights[-l+1].transpose(), d) * act_fn_dx
+            delta_b[-l] = d
+            delta_w[-l] = np.outer(d, self.layers[-l-1])
         return delta_b, delta_w
 
-    def update_network(self, lr, error):
+    def update_network(self, lr, error_prime):
+        delta = error_prime * self.activation_function_derivatives[-1](self.z_values[-1])
         # Get error values
-        delta_b, delta_w = self.back_propogate(error)
+        delta_b, delta_w = self.back_propogate(delta)
 
         # Update weights
         for i in range(len(self.weights)):
@@ -121,6 +154,7 @@ class NeuralNetwork():
                     self.weights[i][j][k] -= lr * delta_w[i][j][k]
                 self.biases[i][j] -= lr * delta_b[i][j]
 
+    # UTILITY METHODS
     def __str__(self):
         to_ret = ''
         for i, weight_matrix in enumerate(self.weights):
@@ -132,35 +166,79 @@ class NeuralNetwork():
             to_ret += '\n\n'
         return to_ret[:-2]
 
+    def reset_layers(self):
+        for layer in self.layers:
+            for i in range(len(layer)):
+                layer[i] = 0
+
+    # METHODS FOR SAVING AND LOADING NETWORK TO AND FROM FILES
+    def save_network(self, dir_path):
+        # Save number of neurons
+        np.save(os.path.join(dir_path, 'num_neurons.npy'), self.num_neurons)
+
+        # Save weights and biases
+        for i in range(len(self.weights)):
+            np.save(os.path.join(dir_path, f'weights_{i}.npy'), self.weights[i])
+            np.save(os.path.join(dir_path, f'biases_{i}.npy'), self.biases[i])
+
+        # Save activation functions
+        with open(os.path.join(dir_path, 'activation_functions.txt'), 'w') as f:
+            to_write = ''
+            for activation_function in self.activation_functions:
+                if activation_function == self.sigmoid:
+                    to_write += 'sigmoid\n'
+                else:
+                    to_write += 'relu\n'
+            f.write(to_write[:-1])
+
+    def load_network(self, dir_path):
+        # Get number of neurons in each layer
+        self.num_neurons = np.load(os.path.join(dir_path, 'num_neurons.npy'))
+
+        # Load weights and biases
+        weight_matrices = []
+        bias_vectors = []
+        for i in range(0, len(self.num_neurons) - 1):
+            # Load weights and biases for a specific layer
+            weights = np.load(os.path.join(dir_path, f'weights_{i}.npy'))
+            biases = np.load(os.path.join(dir_path, f'biases_{i}.npy'))
+            # Check dimensions given for weights matrix
+            if not len(weights) == self.num_neurons[i+1] and not len(weights[0]) == self.num_neurons[i]:
+                raise Exception("Error: invalid network provided -  dimensions of weight matrices do not match number of neurons given for each layer")
+            # Check dimensions given for bias vectors
+            if not len(biases) == self.num_neurons[i+1]:
+                raise Exception("Error: invalid network provided - dimensions of bias vectors do not match number of neurons given for each layer")
+            # Store them if valid
+            weight_matrices.append(weights)
+            bias_vectors.append(biases)
+
+        # Load weight_matrices and bias_vectors values into object
+        self.set_weights(weight_matrices)
+        self.set_biases(bias_vectors)
+
+        # Load activation functions
+        self.activation_functions = []
+        self.activation_function_derivatives = []
+        with open(os.path.join(dir_path, 'activation_functions.txt'), 'r') as f:
+            activation_functions = f.readlines()
+            for activation_function in activation_functions:
+                fn = activation_function.strip()
+                if fn == 'sigmoid':
+                    self.activation_functions.append(self.sigmoid)
+                    self.activation_function_derivatives.append(self.sigmoid_dx)
+                else:
+                    self.activation_functions.append(self.relu)
+                    self.activation_function_derivatives.append(self.relu_dx)
 
 
+
+# Test script
 if __name__ == '__main__':
-    # Activation functions
-    sigmoid = lambda x: 1/(1 + np.exp(-x))
-    sigmoid_dx = lambda x: sigmoid(x) * (1 - sigmoid(x))
-    def relu(x):
-        to_ret = []
-        for val in x:
-            if val > 0:
-                to_ret.append(val)
-            else:
-                to_ret.append(0)
-        return np.array(to_ret)
-    def relu_dx(x):
-        to_ret = []
-        for val in x:
-            if val > 0:
-                to_ret.append(1)
-            else:
-                to_ret.append(0)
-        return np.array(to_ret)
-
-
 
     # Create a first neural network
     print("==================================================================================")
     print("NETWORK 1:")
-    nn = NeuralNetwork((2, 2, 2), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
+    nn = NeuralNetwork((2, 2, 2), ('sigmoid', 'sigmoid'))
     nn.set_weights([np.array([[0.15, 0.2], [0.25, 0.3]]), np.array([[0.4, 0.45], [0.5, 0.55]])])
     nn.set_biases([np.array([0.35, 0.35]), np.array([0.6, 0.6])])
 
@@ -170,7 +248,8 @@ if __name__ == '__main__':
 
     # Update network using backpropogation
     target = np.array([0.01, 0.99])
-    error = (output - target) * sigmoid_dx(nn.z_values[-1])
+    # error = (output - target) * sigmoid_dx(nn.z_values[-1])
+    error = (output - target)
     print("\nError of output:")
     print(error)
     nn.update_network(0.5, error)
@@ -183,7 +262,7 @@ if __name__ == '__main__':
     # Create a second neural network
     print("\n\n\n==================================================================================")
     print("NETWORK 2:")
-    nn = NeuralNetwork((2, 2, 1), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
+    nn = NeuralNetwork((2, 2, 1), ('sigmoid', 'sigmoid'))
     nn.set_weights([np.array([[0.15, 0.2], [0.25, 0.3]]), np.array([[0.4, 0.45]])])
     nn.set_biases([np.array([0.35, 0.35]), np.array([0.6])])
 
@@ -193,7 +272,7 @@ if __name__ == '__main__':
 
     # Test backpropogation
     target = np.array([0.01])
-    error = (output - target) * sigmoid_dx(nn.z_values[-1])
+    error = (output - target)
     print("\nError of output:")
     print(error)
     nn.update_network(0.5, error)
@@ -206,7 +285,7 @@ if __name__ == '__main__':
     # Create a third neural network
     print("\n\n\n==================================================================================")
     print("NETWORK 3:")
-    nn = NeuralNetwork((3, 4, 2), (sigmoid, sigmoid), (sigmoid_dx, sigmoid_dx))
+    nn = NeuralNetwork((3, 4, 2), ('sigmoid', 'sigmoid'))
     nn.set_weights([np.array([
                               [0.2,  0.4,  0.1],
                               [0.5,  0.3,  0.7],
@@ -226,7 +305,7 @@ if __name__ == '__main__':
 
     # Test backpropogation
     target = np.array([0.0, 1.0])
-    error = (output - target) * sigmoid_dx(nn.z_values[-1])
+    error = (output - target)
     print("\nError of output:")
     print(error)
     nn.update_network(0.5, error)
@@ -238,7 +317,7 @@ if __name__ == '__main__':
 
     print("\n\n\n==================================================================================")
     print("NETWORK 4:")
-    nn = NeuralNetwork((3, 4, 2), (relu, sigmoid), (relu_dx, sigmoid_dx))
+    nn = NeuralNetwork((3, 4, 2), ('relu', 'sigmoid'))
     nn.set_weights([np.array([
                               [0.2,  0.4,  0.1],
                               [0.5,  0.3,  0.7],
@@ -258,7 +337,7 @@ if __name__ == '__main__':
 
     # Test backpropogation
     target = np.array([0.2, 0.6])
-    error = (output - target) * relu_dx(nn.z_values[-1])
+    error = (output - target)
     print("\nError of output:")
     print(error)
     nn.update_network(0.1, error)
@@ -266,6 +345,18 @@ if __name__ == '__main__':
     print(nn)
     print("==================================================================================")
 
+
+
+    print("\n\n\n==================================================================================")
+    print("Testing saving NETWORK 4...")
+    # Testing saving of network
+    nn.save_network(os.path.join(os.getcwd(), 'architecture'))
+
+    # Test loading of network
+    print("Testing loading NETWORK 4 from saved files...\n")
+    nn.load_network(os.path.join(os.getcwd(), 'architecture'))
+    print(nn)
+    print("==================================================================================")
 
     # Get error
     # Delta_L = Grad(CostFn)(target) * OutputActivationFunctionDerivative, which in our case is: 
