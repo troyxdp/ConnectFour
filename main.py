@@ -35,11 +35,15 @@ def update_deep_q_network(
 
         # Get Q Value of action taken for current state in item
         q_sa = curr_state_q_values[item['a']]
+        if np.random.rand() < 0.1:
+            print(f"Example Q Values: {curr_state_q_values}")
 
         # Get the derivative of the error - use for updating the network
         mse_dx = item['r'] + gamma * max_q_val - q_sa
         error_prime = np.zeros(len(curr_state_q_values))
         error_prime[item['a']] = mse_dx
+
+        print(f"d/dx of MSE of current update = {mse_dx}")
 
         # Update the prediction neural network of trainee agent
         trainee_agent.reinforce(lr, error_prime)
@@ -61,10 +65,16 @@ def train_agent(
         trainee_agent: ConnectFourAgent, 
         training_agent: Agent
     ):
+    # Initialize values
     memory = []
     iterations = 0
+
+    # Performance measures
     episode_cumulative_rewards = []
     trainee_wins = 0
+    trainee_wins_over_time = []
+
+    # Run training
     for i in range(episodes):
         print(f"\nEPISODE {i + 1}")
         # Create new game
@@ -100,7 +110,7 @@ def train_agent(
             if (training_agent.is_player_one() and is_player_one_turn) or (not training_agent.is_player_one() and not is_player_one_turn): # Is opponent turn
                 # print("Training agent turn")
                 # Get move
-                move = training_agent.act(curr_eps) # setting the epsilon value here so that some exploration can also happen using the training agent
+                move = training_agent.act(0) # setting the epsilon value here so that some exploration can also happen using the training agent
                 try:
                     game.make_move(move)
                 except Exception:
@@ -167,6 +177,7 @@ def train_agent(
             os.mkdir(model_path)
             trainee_agent.nn_target.save_network(model_path)
             print(f"NUMBER OF WINS: {trainee_wins}/{model_save_freq}")
+            trainee_wins_over_time.append(trainee_wins)
             trainee_wins = 0
 
     # Save final weights
@@ -182,9 +193,13 @@ def train_agent(
     plt.title("Cumulative Rewards over Episodes")
     plt.show()
 
-    # Print target neural network
-    print(trainee_agent.nn_target)
-
+    # Plot to show number of wins over time
+    x = range(len(trainee_wins_over_time))
+    plt.plot(x, trainee_wins_over_time)
+    plt.xlabel(f"Cycles of {model_save_freq} episodes")
+    plt.ylabel(f"Number of wins out of f{model_save_freq} games")
+    plt.title("Number of Wins over Time")
+    plt.show()
 
 
 

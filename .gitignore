@@ -1,3 +1,4 @@
 architecture/
 .venv/
 __pycache__/
+results/
