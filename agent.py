@@ -5,9 +5,9 @@ from neural_network import NeuralNetwork
 class Agent():
     def __init__(
             self, 
-            game: ConnectFour, 
-            is_player_one: bool, 
-            results_scores={'win': 30, 'loss': -30, 'draw': -5, 'ongoing': 0, 'three_in_a_row': 0.75}
+            is_player_one: bool,
+            game=None, 
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.1, 'three_in_a_row': 0.75}
         ):
         # Check results scores is valid
         if results_scores['win'] is None or results_scores['loss'] is None or results_scores['draw'] is None or results_scores['ongoing'] is None or results_scores['three_in_a_row'] is None:
@@ -79,8 +79,8 @@ class Agent():
                         curr_state_threes_opponent += 1
 
         # Calculate the new number of threes achieved for opponent and player and update reward accordingly
-        reward += (curr_state_threes_player - self._prev_state_threes_player) * self.results_scores['three_in_a_row']
-        reward -= (curr_state_threes_opponent - self._prev_state_threes_opponent) * self.results_scores['three_in_a_row']
+        reward += (curr_state_threes_player - self._prev_state_threes_player) * self._results_scores['three_in_a_row']
+        reward -= (curr_state_threes_opponent - self._prev_state_threes_opponent) * self._results_scores['three_in_a_row']
 
         # Update counts of number of threes
         self._prev_state_threes_player = curr_state_threes_player
@@ -99,29 +99,33 @@ class Agent():
     def reinforce(self):
         pass
 
-    def set_game(self):
+    def set_game(self, game):
         self._game = game
 
-    def is_player_one_turn(self):
-        return self._is_player_one
-
     def set_player_number(self, player_num: int):
-        if player_num not in range(1, 2):
+        if player_num not in range(1, 3):
             raise Exception
         if player_num == 1:
             self._is_player_one = True
         else:
             self._is_player_one = False
 
+    def is_player_one(self):
+        return self._is_player_one
+
+    def reset_prev_state_threes_counts(self):
+        self._prev_state_threes_player = 0
+        self._prev_state_threes_opponent = 0
+
 
 
 
 class RandomAgent(Agent):
     def __init__(
-            self, 
-            game: ConnectFour, 
+            self,  
             is_player_one: bool, 
-            results_scores={'win': 30, 'loss': -30, 'draw': -5, 'ongoing': 0, 'three_in_a_row': 0.75}
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.1, 'three_in_a_row': 0.75},
+            game=None
         ):
         super().__init__(game, is_player_one, results_scores)
 
@@ -138,21 +142,21 @@ class RandomAgent(Agent):
         for i, move in enumerate(moves):
             if move:
                 selected_move_num -= 1
-                if selected_move_num == 0:
+                if selected_move_num < 0:
                     return i
+
+        # No legal moves
+        raise Exception("Error: no legal moves available")
 
 
 
 class ConnectFourAgent(Agent):
     def __init__(
             self, 
-            game: ConnectFour, 
-            s_player_one: bool, 
-            results_scores={'win': 30, 'loss': -30, 'draw': -5, 'ongoing': 0, 'three_in_a_row': 0.75}, 
+            is_player_one: bool, 
             nn: NeuralNetwork,
-            eps: float,
-            gamma: float,
-            alpha: float
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.1, 'three_in_a_row': 0.75}, 
+            game=None
         ):
         super().__init__(game, is_player_one, results_scores)
         self.nn_pred = nn
@@ -160,14 +164,14 @@ class ConnectFourAgent(Agent):
 
     def act(self, eps):
         # Get Q-Values
-        board_state = self.game.get_board().flatten()
-        nn_input = np.concatenate(board_state, [1 if game.get_is_player_one_turn() else -1])
+        board_state = self._game.get_board().flatten()
+        nn_input = np.concatenate((board_state, np.array([1 if self._game.get_is_player_one_turn() else -1])))
         q_values = self.nn_pred.feed_forward(nn_input)
 
         # Select move
         rand_val = np.random.rand()
         if rand_val < eps: # Select a random legal move
-            # Get legal moves
+            # Get number of legal moves
             moves = self.sense()
             num_legal_moves = 0
             for move in moves:
@@ -179,28 +183,42 @@ class ConnectFourAgent(Agent):
             for i, move in enumerate(moves):
                 if move:
                     selected_move_num -= 1
-                    if selected_move_num == 0:
+                    if selected_move_num < 0:
                         return i
+
+            # No legal moves
+            raise Exception("Error: no legal moves available")
+
         else: # Select the move with the highest Q-Value
-            # Sort (Action, Q-Value) tuple in descending order
-            q_val_actions = zip(np.arange(len_q_values), q_values)
+            # Sort (Action, Q-Value) in descending order
+            q_val_actions = np.zeros((7, 2))
+            for i in range(len(q_val_actions)):
+                q_val_actions[i][0] = i
+                q_val_actions[i][1] = q_values[i]
+
             for o in range(len(q_val_actions) - 1):
                 for i in range(o+1, len(q_val_actions)):
-                    if q_val_actions[i][1] > q_val_actions[o][1]
+                    if q_val_actions[i][1] > q_val_actions[o][1]:
                         temp = q_val_actions[i].copy()
                         q_val_actions[i] = q_val_actions[o].copy()
                         q_val_actions[o] = temp
             
             # Choose legal move
             for action in q_val_actions:
-                if self.game.is_legal_move(action[0]):
-                    return action[0]
+                if self._game.is_legal_move(int(action[0])):
+                    return int(action[0])
             
             # Raise exception because no legal move was found
-            raise Exception
+            raise Exception("Error: no legal moves available")
 
-    def reinforce(self):
-        pass
+    def get_nn_pred_q_values(self, nn_input):
+        return self.nn_pred.feed_forward(nn_input)
+
+    def get_nn_target_q_values(self, nn_input):
+        return self.nn_target.feed_forward(nn_input)
 
     def copy_to_target(self):
         self.nn_target = self.nn_pred.copy()
+
+    def reinforce(self, lr, delta):
+        self.nn_pred.update_network(lr, delta)

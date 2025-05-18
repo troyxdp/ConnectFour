@@ -40,9 +40,12 @@ class NeuralNetwork():
             if activation_function == 'sigmoid':
                 self.activation_functions.append(self.sigmoid)
                 self.activation_function_derivatives.append(self.sigmoid_dx)
-            else:
+            elif activation_function == 'relu':
                 self.activation_functions.append(self.relu)
                 self.activation_function_derivatives.append(self.relu_dx)
+            else:
+                self.activation_functions.append(self.linear)
+                self.activation_function_derivatives.append(self.linear_dx)
 
     # ACTIVATION FUNCTIONS
     def sigmoid(self, x):
@@ -68,6 +71,12 @@ class NeuralNetwork():
             else:
                 to_ret.append(0)
         return np.array(to_ret)
+
+    def linear(self, x):
+        return x
+
+    def linear_dx(self, x):
+        return 1
 
     # SETTER METHODS
     def set_weights(self, weight_matrices):
@@ -187,8 +196,10 @@ class NeuralNetwork():
             for activation_function in self.activation_functions:
                 if activation_function == self.sigmoid:
                     to_write += 'sigmoid\n'
-                else:
+                elif activation_function == self.relu:
                     to_write += 'relu\n'
+                else:
+                    to_write += 'linear\n'
             f.write(to_write[:-1])
 
     def load_network(self, dir_path):
@@ -226,9 +237,12 @@ class NeuralNetwork():
                 if fn == 'sigmoid':
                     self.activation_functions.append(self.sigmoid)
                     self.activation_function_derivatives.append(self.sigmoid_dx)
-                else:
+                elif fn == 'relu':
                     self.activation_functions.append(self.relu)
                     self.activation_function_derivatives.append(self.relu_dx)
+                else:
+                    self.activation_functions.append(self.linear)
+                    self.activation_function_derivatices.append(self.linear_dx)
 
 
 
