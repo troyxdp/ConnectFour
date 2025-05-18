@@ -10,17 +10,17 @@ class ConnectFour():
     def make_move(self, col : int):
         if col not in range(0, 7):
             raise Exception
-        for r in range(6):
+        for r in range(len(self.board)):
             if self.board[r][col] == 0:
                 self.board[r][col] = 1 if self.is_player_one_turn else -1
                 self.is_player_one_turn = not self.is_player_one_turn
-                return
+                return self.board
         raise Exception
 
     def is_legal_move(self, col: int):
-        if col not in range(0, 7):
+        if col not in range(len(self.board[0])):
             raise Exception
-        for r in range(6):
+        for r in range(len(self.board)):
             if self.board[r][col] == 0:
                 return True
         return False
@@ -30,14 +30,14 @@ class ConnectFour():
         moves = [False for i in range(len(self.board[0]))]
         for i in range(len(moves)):
             # set move to legal when top space of a column is open
-            if self.board[5][i] == 0:
+            if self.board[len(self.board)-1][i] == 0:
                 moves[i] = True
         return moves
 
     def calculate_winner(self):
         # check columns
-        for c in range(len(self.board[0])):
-            for r in range(3):
+        for r in range(len(self.board) - 3):
+            for c in range(len(self.board[0])):
                 if self.board[r][c] == 0:
                     continue
                 if self.board[r][c] == self.board[r+1][c] and self.board[r+1][c] == self.board[r+2][c] and self.board[r+2][c] == self.board[r+3][c]:
@@ -49,7 +49,7 @@ class ConnectFour():
 
         # check rows
         for r in range(len(self.board)):
-            for c in range(4):
+            for c in range(len(self.board[0]) - 3):
                 if self.board[r][c] == 0:
                     continue
                 if self.board[r][c] == self.board[r][c+1] and self.board[r][c+1] == self.board[r][c+2] and self.board[r][c+2] == self.board[r][c+3]:
@@ -60,8 +60,8 @@ class ConnectFour():
                     return -1
 
         # check BL to TR diagonals
-        for r in range(3):
-            for c in range(4):
+        for r in range(len(self.board) - 3):
+            for c in range(len(self.board[0]) - 3):
                 if self.board[r][c] == 0:
                     continue
                 if self.board[r][c] == self.board[r+1][c+1] and self.board[r+1][c+1] == self.board[r+2][c+2] and self.board[r+2][c+2] == self.board[r+3][c+3]:
@@ -72,8 +72,8 @@ class ConnectFour():
                     return -1
 
         # check TL to BR diagonals
-        for r in range(3):
-            for c in range(4):
+        for r in range(len(self.board) - 3):
+            for c in range(len(self.board[0]) - 3):
                 if self.board[r+3][c] == 0:
                     continue
                 if self.board[r+3][c] == self.board[r+2][c+1] and self.board[r+2][c+1] == self.board[r+1][c+2] and self.board[r+1][c+2] == self.board[r][c+3]:
@@ -118,6 +118,11 @@ class ConnectFour():
 
     def get_board(self):
         return self.board
+
+    def get_prev_state_board(self):
+        return self.prev_state_board
+
+
 
 if __name__ == '__main__':
     game = ConnectFour()

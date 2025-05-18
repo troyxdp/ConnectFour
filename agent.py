@@ -3,43 +3,116 @@ from game import ConnectFour
 from neural_network import NeuralNetwork
 
 class Agent():
-    def __init__(self, game: ConnectFour, is_player_one: bool, results_scores={'win': 1, 'loss': -1, 'draw': 0, 'ongoing': 0}):
+    def __init__(
+            self, 
+            game: ConnectFour, 
+            is_player_one: bool, 
+            results_scores={'win': 30, 'loss': -30, 'draw': -5, 'ongoing': 0, 'three_in_a_row': 0.75}
+        ):
         # Check results scores is valid
-        if results_scores['win'] is None or results_scores['loss'] is None or results_scores['draw'] is None or results_scores['ongoing'] is None:
+        if results_scores['win'] is None or results_scores['loss'] is None or results_scores['draw'] is None or results_scores['ongoing'] is None or results_scores['three_in_a_row'] is None:
             raise Exception
 
         # Initialize values
         self._game = game
         self._is_player_one = is_player_one
         self._results_scores = results_scores
+        self._prev_state_threes_player = 0
+        self._prev_state_threes_opponent = 0
 
     def evaluate_reward(self):
+        # REWARDS FOR GAME RESULTS
         # Player 1 wins
+        reward = 0
         if self._game.get_winner() == 1:
             if self._is_player_one:
-                return self._results_scores['win']
+                reward += self._results_scores['win']
             else:
-                return self._results_scores['loss']
+                reward += self._results_scores['loss']
         # Player 2 wins
         elif self._game.get_winner() == -1:
             if self._is_player_one:
-                return self._results_scores['loss']
+                reward += self._results_scores['loss']
             else:
-                return self._results_scores['win']
+                reward += self._results_scores['win']
         # Draw
         elif self._game.get_winner() == 2:
-            return self._results_scores['draw']
+            reward += self._results_scores['draw']
         # Game is not complete
-        return self._results_scores['ongoing']
+        reward += self._results_scores['ongoing']
+
+        # REWARDS FOR GETTING 3 IN A ROW
+        curr_state_threes_player = 0
+        curr_state_threes_opponent = 0
+        board_state = self._game.get_board() 
+        # Check rows
+        for i in range(len(board_state)):
+            for j in range(len(board_state[0]) - 2):
+                if board_state[i][j] == board_state[i][j+1] and board_state[i][j+1] == board_state[i][j+2] and not board_state[i][j] == 0:
+                    if board_state[i][j] == 1 and self._is_player_one or board_state[i][j] == -1 and not self._is_player_one:
+                        curr_state_threes_player += 1
+                    else:
+                        curr_state_threes_opponent += 1
+        # Check columns
+        for i in range(len(board_state) - 2):
+            for j in range(len(board_state[0])):
+                if board_state[i][j] == board_state[i+1][j] and board_state[i+1][j] == board_state[i+2][j] and not board_state[i][j] == 0:
+                    if board_state[i][j] == 1 and self._is_player_one or board_state[i][j] == -1 and not self._is_player_one:
+                        curr_state_threes_player += 1
+                    else:
+                        curr_state_threes_opponent += 1
+        # Check BL-TR diagonals
+        for i in range(len(board_state) - 2):
+            for j in range(len(board_state[0]) - 2):
+                if board_state[i][j] == board_state[i+1][j+1] and board_state[i+1][j+1] == board_state[i+2][j+2] and not board_state[i][j] == 0:
+                    if board_state[i][j] == 1 and self._is_player_one or board_state[i][j] == -1 and not self._is_player_one:
+                        curr_state_threes_player += 1
+                    else:
+                        curr_state_threes_opponent += 1
+        # Check TL-BR diagonals
+        for i in range(len(board_state) - 2):
+            for j in range(len(board_state[0]) - 2):
+                if board_state[i+2][j] == board_state[i+1][j+1] and board_state[i+1][j+1] == board_state[i][j+2] and not board_state[i+2][j] == 0:
+                    if board_state[i+2][j] == 1 and self._is_player_one or board_state[i+2][j] == -1 and not self._is_player_one:
+                        curr_state_threes_player += 1
+                    else:
+                        curr_state_threes_opponent += 1
+
+        # Calculate the new number of threes achieved for opponent and player and update reward accordingly
+        reward += (curr_state_threes_player - self._prev_state_threes_player) * self.results_scores['three_in_a_row']
+        reward -= (curr_state_threes_opponent - self._prev_state_threes_opponent) * self.results_scores['three_in_a_row']
+
+        # Update counts of number of threes
+        self._prev_state_threes_player = curr_state_threes_player
+        self._prev_state_threes_opponent = curr_state_threes_opponent
+
+        # Return reward value
+        return reward
+        
 
     def sense(self):
         return self._game.get_moves()
 
-    def act(self):
+    def act(self, eps):
         pass
 
     def reinforce(self):
         pass
+
+    def set_game(self):
+        self._game = game
+
+    def is_player_one_turn(self):
+        return self._is_player_one
+
+    def set_player_number(self, player_num: int):
+        if player_num not in range(1, 2):
+            raise Exception
+        if player_num == 1:
+            self._is_player_one = True
+        else:
+            self._is_player_one = False
+
 
 
 
@@ -48,11 +121,11 @@ class RandomAgent(Agent):
             self, 
             game: ConnectFour, 
             is_player_one: bool, 
-            results_scores={'win': 1, 'loss': -1, 'draw': 0, 'ongoing': 0}
+            results_scores={'win': 30, 'loss': -30, 'draw': -5, 'ongoing': 0, 'three_in_a_row': 0.75}
         ):
         super().__init__(game, is_player_one, results_scores)
 
-    def act(self):
+    def act(self, eps):
         # Get number of legal moves
         moves = self.sense()
         num_legal_moves = 0
@@ -75,23 +148,21 @@ class ConnectFourAgent(Agent):
             self, 
             game: ConnectFour, 
             s_player_one: bool, 
-            results_scores={'win': 1, 'loss': -1, 'draw': 0, 'ongoing': 0}, 
+            results_scores={'win': 30, 'loss': -30, 'draw': -5, 'ongoing': 0, 'three_in_a_row': 0.75}, 
             nn: NeuralNetwork,
             eps: float,
             gamma: float,
             alpha: float
         ):
         super().__init__(game, is_player_one, results_scores)
-        self.nn = nn
-        self.eps = eps
-        self.gamma = gamma
-        self.alpha = alpha
+        self.nn_pred = nn
+        self.nn_target = nn
 
-    def act(self):
+    def act(self, eps):
         # Get Q-Values
         board_state = self.game.get_board().flatten()
         nn_input = np.concatenate(board_state, [1 if game.get_is_player_one_turn() else -1])
-        q_values = nn.feed_forward(nn_input)
+        q_values = self.nn_pred.feed_forward(nn_input)
 
         # Select move
         rand_val = np.random.rand()
@@ -128,3 +199,8 @@ class ConnectFourAgent(Agent):
             # Raise exception because no legal move was found
             raise Exception
 
+    def reinforce(self):
+        pass
+
+    def copy_to_target(self):
+        self.nn_target = self.nn_pred.copy()
