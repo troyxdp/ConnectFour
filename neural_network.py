@@ -133,35 +133,41 @@ class NeuralNetwork():
     def get_output(self):
         return self.layers[-1]
 
-    # METHODS RELATED TO UPDATING NETWORK - Adapted this code from http://neuralnetworksanddeeplearning.com/chap2.html
+    # METHODS RELATED TO UPDATING NETWORK
     def back_propogate(self, delta):
         # Get backpropogation values for each weights matrix and bias vector
-        delta_w = [np.zeros(weight_matrix.shape) for weight_matrix in self.weights]
-        delta_b = [np.zeros(bias_vector.shape) for bias_vector in self.biases]
+        grad_w = [np.zeros(weight_matrix.shape) for weight_matrix in self.weights]
+        grad_b = [np.zeros(bias_vector.shape) for bias_vector in self.biases]
 
         # Get initial backpropogation values
-        delta_b[-1] = delta.copy()
-        delta_w[-1] = np.outer(delta, self.layers[-2])
+        grad_w[-1] = delta.copy()
+        grad_w[-1] = np.outer(delta, self.layers[-2])
 
         # Backpropogate throughout layers
         d = delta.copy()
-        for l in range(2, len(self.layers)):
-            act_fn_dx = self.activation_function_derivatives[-l](self.z_values[-l])
-            d = np.dot(self.weights[-l+1].transpose(), d) * act_fn_dx
-            delta_b[-l] = d
-            delta_w[-l] = np.outer(d, self.layers[-l-1])
-        return delta_b, delta_w
+        for l in range(2, len(self.layers)): # iterate backwards through layers
+            # s_l'(z_l) where s_l is activation function of layer l
+            act_fn_dx = self.activation_function_derivatives[-l](self.z_values[-l]) 
+            # delta_l = ((W_l+1)^T . delta_(l+1)) * s_l'(z_l) where W_l+1 is weights of next layer 
+            d = np.dot(self.weights[-l+1].transpose(), d) * act_fn_dx 
+            # gradient for biases = delta_l
+            grad_w[-l] = d 
+            # gradient for weights = delta_l . (a_l-1)^T where a_l-1 is the activated outputs of the previous layer
+            grad_w[-l] = np.outer(d, self.layers[-l-1]) 
+        # Return gradients
+        return grad_w, grad_w
 
     def update_network(self, lr, error_prime, use_gradient_clipping=True, clip_value=1.0):
+        # delta = Grad(Cost(x)) * activation_function_prime(z_L)
         delta = error_prime * self.activation_function_derivatives[-1](self.z_values[-1])
         # Get error values
-        delta_b, delta_w = self.back_propogate(delta)
+        grad_b, grad_w = self.back_propogate(delta)
 
         # Update weights
         for i in range(len(self.weights)): # iterate through weight matrices and bias vectors
             # Get gradients
-            dW = delta_w[i]
-            dB = delta_b[i]
+            dW = grad_w[i]
+            dB = grad_b[i]
 
             # Perform  norm-based gradient clipping
             dW_norm = np.linalg.norm(dW)

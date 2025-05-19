@@ -8,7 +8,6 @@ import os
 import matplotlib.pyplot as plt
 import shutil
 
-# Created with assistance from https://medium.com/@samina.amin/deep-q-learning-dqn-71c109586bae
 def update_deep_q_network(
         lr: float, 
         gamma: float, 
@@ -37,8 +36,6 @@ def update_deep_q_network(
 
         # Get Q Value of action taken for current state in item
         q_sa = curr_state_q_values[item['a']]
-        # if np.random.rand() < 0.1:
-        #     print(f"Example Q Values: {curr_state_q_values}")
 
         # Get the derivative of the error - use for updating the network
         mse_dx = item['r'] + gamma * max_q_val - q_sa
@@ -50,7 +47,6 @@ def update_deep_q_network(
 
 
 
-# Created with assistance from https://medium.com/@samina.amin/deep-q-learning-dqn-71c109586bae 
 def train_agent(
         lr: float, 
         gamma: float, 
