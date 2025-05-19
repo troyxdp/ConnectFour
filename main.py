@@ -6,6 +6,7 @@ import random
 import yaml
 import os
 import matplotlib.pyplot as plt
+import shutil
 
 # Created with assistance from https://medium.com/@samina.amin/deep-q-learning-dqn-71c109586bae
 def update_deep_q_network(
@@ -190,11 +191,6 @@ def train_agent(
                 # print(f"Error: NaN encountered in network. Here is final NUMBER OF WINS: {trainee_wins_over_time}")
                 break
 
-            # # Test loading of neural network for debugging
-            # loaded_nn = NeuralNetwork((43, 128, 128, 7), ('relu', 'relu', 'linear'))
-            # loaded_nn.load_network(model_path)
-            # # print(loaded_nn)
-
     # Save final weights
     model_path = os.path.join(save_dir, 'final_model')
     os.mkdir(model_path)
@@ -219,6 +215,8 @@ def train_agent(
     # Show best cycle
     print("Best Cycle:")
     print(np.argmax(trainee_wins_over_time))
+    print("Score of Cycle:")
+    print(np.max(trainee_wins_over_time))
 
 
 
@@ -247,6 +245,9 @@ if __name__ == '__main__':
         save_dir = os.path.join(os.getcwd(), save_dir)
     if not os.path.exists(save_dir):
         raise Exception("Error: save path does not exist!")
+    
+    # Copy hyperparameter file to save directory
+    shutil.copy('hyperparameters.yaml', save_dir)
 
     # Start training cycle
     train_agent(

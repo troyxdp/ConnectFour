@@ -1,11 +1,11 @@
-lr: 0.0001
+lr: 0.001
 gamma: 0.99
 eps: 0.99
 eps_final: 0.05
 batch_size: 32
 max_mem_len: 100
-target_update_freq: 300
-episodes: 1500
-model_save_freq: 50
+target_update_freq: 500
+episodes: 10000
+model_save_freq: 500
 num_neurons: [43, 128, 128, 7]
 activation_functions: ['relu', 'relu', 'linear']

@@ -120,7 +120,6 @@ class Agent():
 
 
 
-
 class RandomAgent(Agent):
     def __init__(
             self,  
