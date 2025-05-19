@@ -15,6 +15,7 @@ def update_deep_q_network(
         trainee_agent: ConnectFourAgent, 
         memory: list
     ):
+    print("Updating neural network...")
     update_batch = random.sample(memory, batch_size)
     for item in update_batch:
         # Create input for neural networks
@@ -138,9 +139,11 @@ def train_agent(
                 # Check whether to update using memory
                 if len(memory) >= max_mem_len:
                     update_deep_q_network(lr, gamma, batch_size, trainee_agent, memory)
+                    memory = []
 
                 # Check whether to copy prediction weights to target weights
                 if iterations == target_update_freq:
+                    print("Copying to target...")
                     trainee_agent.copy_to_target()
                     iterations = 0
                 else:
@@ -170,18 +173,27 @@ def train_agent(
 
         # Save target neural network periodically
         if (i % model_save_freq == 0):
-            model_num = int(i / model_save_freq)
-            model_path = os.path.join(save_dir, f'model_{model_num}')
-            os.mkdir(model_path)
-            trainee_agent.nn_target.save_network(model_path)
+            print("Neural network currently: ")
+            print(trainee_agent.nn_target)
+
             print(f"NUMBER OF WINS: {trainee_wins}/{model_save_freq}")
             trainee_wins_over_time.append(trainee_wins)
             trainee_wins = 0
 
-            # Test loading of neural network for debugging
-            loaded_nn = NeuralNetwork((43, 128, 128, 7), ('relu', 'relu', 'linear'))
-            loaded_nn.load_network(model_path)
-            print(loaded_nn)
+            print("Saving neural network...")
+            model_num = int(i / model_save_freq)
+            model_path = os.path.join(save_dir, f'model_{model_num}')
+            os.mkdir(model_path)
+            try:
+                trainee_agent.nn_target.save_network(model_path)
+            except Exception as e:
+                # print(f"Error: NaN encountered in network. Here is final NUMBER OF WINS: {trainee_wins_over_time}")
+                break
+
+            # # Test loading of neural network for debugging
+            # loaded_nn = NeuralNetwork((43, 128, 128, 7), ('relu', 'relu', 'linear'))
+            # loaded_nn.load_network(model_path)
+            # # print(loaded_nn)
 
     # Save final weights
     model_path = os.path.join(save_dir, 'final_model')
@@ -189,7 +201,7 @@ def train_agent(
     trainee_agent.nn_target.save_network(model_path)
 
     # Plot rewards over episodes
-    x = range(episodes)
+    x = range(len(episode_cumulative_rewards))
     plt.plot(x, episode_cumulative_rewards)
     plt.xlabel("Episodes")
     plt.ylabel("Cumulative Rewards")

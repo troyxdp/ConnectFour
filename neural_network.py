@@ -23,12 +23,13 @@ class NeuralNetwork():
         # initialize weights
         self.weights = []
         for i in range(1, len(num_neurons)):
-            self.weights.append(np.random.rand(num_neurons[i], num_neurons[i-1]))
+            # Initialize with He initialization
+            self.weights.append(np.random.normal(0, np.sqrt(2/ num_neurons[i-1]), (num_neurons[i], num_neurons[i-1])))
 
         # Initialize biases
         self.biases = []
         for i in range(1, len(num_neurons)):
-            self.biases.append(np.random.rand(num_neurons[i]))
+            self.biases.append(np.random.rand(num_neurons[i])/100)
 
         # Save the number of neurons in each layer
         self.num_neurons = np.array(num_neurons)
@@ -151,17 +152,28 @@ class NeuralNetwork():
             delta_w[-l] = np.outer(d, self.layers[-l-1])
         return delta_b, delta_w
 
-    def update_network(self, lr, error_prime):
+    def update_network(self, lr, error_prime, use_gradient_clipping=True, clip_value=1.0):
         delta = error_prime * self.activation_function_derivatives[-1](self.z_values[-1])
         # Get error values
         delta_b, delta_w = self.back_propogate(delta)
 
         # Update weights
-        for i in range(len(self.weights)):
-            for j in range(len(self.weights[i])):
-                for k in range(len(self.weights[i][j])):
-                    self.weights[i][j][k] -= lr * delta_w[i][j][k]
-                self.biases[i][j] -= lr * delta_b[i][j]
+        for i in range(len(self.weights)): # iterate through weight matrices and bias vectors
+            # Get gradients
+            dW = delta_w[i]
+            dB = delta_b[i]
+
+            # Perform  norm-based gradient clipping
+            dW_norm = np.linalg.norm(dW)
+            if dW_norm > clip_value:
+                dW = dW * (clip_value / dW_norm)
+                dB = dB * (clip_value / dW_norm)
+
+            # Update weights
+            for j in range(len(self.weights[i])): # iterate through rows of weight matrices and biases
+                for k in range(len(self.weights[i][j])): # iterate through columns of weight matrices
+                    self.weights[i][j][k] -= lr * dW[j][k]
+                self.biases[i][j] -= lr * dB[j]
 
     # UTILITY METHODS
     def __str__(self):
