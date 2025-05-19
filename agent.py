@@ -8,7 +8,7 @@ class Agent():
             self, 
             is_player_one: bool,
             game=None, 
-            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.01, 'three_in_a_row': 0.75}
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.001, 'three_in_a_row': 0.75}
         ):
         # Check results scores is valid
         if results_scores['win'] is None or results_scores['loss'] is None or results_scores['draw'] is None or results_scores['ongoing'] is None or results_scores['three_in_a_row'] is None:
@@ -125,7 +125,7 @@ class RandomAgent(Agent):
     def __init__(
             self,  
             is_player_one: bool, 
-            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.01, 'three_in_a_row': 1},
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.001, 'three_in_a_row': 1},
             game=None
         ):
         super().__init__(game, is_player_one, results_scores)
@@ -156,7 +156,7 @@ class ConnectFourAgent(Agent):
             self, 
             is_player_one: bool, 
             nn: NeuralNetwork,
-            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.01, 'three_in_a_row': 0.75}, 
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.001, 'three_in_a_row': 0.75}, 
             game=None
         ):
         super().__init__(game, is_player_one, results_scores)
@@ -164,11 +164,6 @@ class ConnectFourAgent(Agent):
         self.nn_target = nn
 
     def act(self, eps):
-        # Get Q-Values
-        board_state = self._game.get_board().flatten()
-        nn_input = np.concatenate((board_state, np.array([1 if self._game.get_is_player_one_turn() else -1])))
-        q_values = self.nn_pred.feed_forward(nn_input)
-
         # Select move
         rand_val = np.random.rand()
         if rand_val < eps: # Select a random legal move
@@ -191,6 +186,11 @@ class ConnectFourAgent(Agent):
             raise Exception("Error: no legal moves available")
 
         else: # Select the move with the highest Q-Value
+            # Get Q-Values
+            board_state = self._game.get_board().flatten()
+            nn_input = np.concatenate((board_state, np.array([1 if self._game.get_is_player_one_turn() else -1])))
+            q_values = self.nn_pred.feed_forward(nn_input)
+
             # Sort (Action, Q-Value) in descending order
             q_val_actions = np.zeros((7, 2))
             for i in range(len(q_val_actions)):

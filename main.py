@@ -35,15 +35,13 @@ def update_deep_q_network(
 
         # Get Q Value of action taken for current state in item
         q_sa = curr_state_q_values[item['a']]
-        if np.random.rand() < 0.1:
-            print(f"Example Q Values: {curr_state_q_values}")
+        # if np.random.rand() < 0.1:
+        #     print(f"Example Q Values: {curr_state_q_values}")
 
         # Get the derivative of the error - use for updating the network
         mse_dx = item['r'] + gamma * max_q_val - q_sa
         error_prime = np.zeros(len(curr_state_q_values))
         error_prime[item['a']] = mse_dx
-
-        print(f"d/dx of MSE of current update = {mse_dx}")
 
         # Update the prediction neural network of trainee agent
         trainee_agent.reinforce(lr, error_prime)
@@ -180,6 +178,11 @@ def train_agent(
             trainee_wins_over_time.append(trainee_wins)
             trainee_wins = 0
 
+            # Test loading of neural network for debugging
+            loaded_nn = NeuralNetwork((43, 128, 128, 7), ('relu', 'relu', 'linear'))
+            loaded_nn.load_network(model_path)
+            print(loaded_nn)
+
     # Save final weights
     model_path = os.path.join(save_dir, 'final_model')
     os.mkdir(model_path)
@@ -200,6 +203,10 @@ def train_agent(
     plt.ylabel(f"Number of wins out of f{model_save_freq} games")
     plt.title("Number of Wins over Time")
     plt.show()
+
+    # Show best cycle
+    print("Best Cycle:")
+    print(np.argmax(trainee_wins_over_time))
 
 
 

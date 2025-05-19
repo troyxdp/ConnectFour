@@ -183,12 +183,16 @@ class NeuralNetwork():
     # METHODS FOR SAVING AND LOADING NETWORK TO AND FROM FILES
     def save_network(self, dir_path):
         # Save number of neurons
-        np.save(os.path.join(dir_path, 'num_neurons.npy'), self.num_neurons)
+        np.save(os.path.join(dir_path, 'num_neurons.npy'), np.array(self.num_neurons))
 
         # Save weights and biases
         for i in range(len(self.weights)):
-            np.save(os.path.join(dir_path, f'weights_{i}.npy'), self.weights[i])
-            np.save(os.path.join(dir_path, f'biases_{i}.npy'), self.biases[i])
+            # Check for NaN values
+            if np.isnan(self.weights[i]).any() or np.isnan(self.biases[i]).any():
+                raise Exception("Error: trying to save NaN values")
+            # Save weights and biases for layer i    
+            np.save(os.path.join(dir_path, f'weights_{i}.npy'), np.array(self.weights[i]))
+            np.save(os.path.join(dir_path, f'biases_{i}.npy'), np.array(self.biases[i]))
 
         # Save activation functions
         with open(os.path.join(dir_path, 'activation_functions.txt'), 'w') as f:
@@ -211,14 +215,19 @@ class NeuralNetwork():
         bias_vectors = []
         for i in range(0, len(self.num_neurons) - 1):
             # Load weights and biases for a specific layer
-            weights = np.load(os.path.join(dir_path, f'weights_{i}.npy'))
-            biases = np.load(os.path.join(dir_path, f'biases_{i}.npy'))
+            weights = np.load(os.path.join(dir_path, f'weights_{i}.npy'), allow_pickle=True)
+            biases = np.load(os.path.join(dir_path, f'biases_{i}.npy'), allow_pickle=True)
+
             # Check dimensions given for weights matrix
-            if not len(weights) == self.num_neurons[i+1] and not len(weights[0]) == self.num_neurons[i]:
+            if not len(weights) == self.num_neurons[i+1] or not len(weights[0]) == self.num_neurons[i]:
                 raise Exception("Error: invalid network provided -  dimensions of weight matrices do not match number of neurons given for each layer")
             # Check dimensions given for bias vectors
             if not len(biases) == self.num_neurons[i+1]:
                 raise Exception("Error: invalid network provided - dimensions of bias vectors do not match number of neurons given for each layer")
+            # Check if any of the values are NaNs
+            if np.isnan(weights).any() or np.isnan(biases).any():
+                raise Exception(f"NaNs detected in weights/biases at layer {i}")
+
             # Store them if valid
             weight_matrices.append(weights)
             bias_vectors.append(biases)
@@ -242,12 +251,21 @@ class NeuralNetwork():
                     self.activation_function_derivatives.append(self.relu_dx)
                 else:
                     self.activation_functions.append(self.linear)
-                    self.activation_function_derivatices.append(self.linear_dx)
+                    self.activation_function_derivatives.append(self.linear_dx)
 
 
 
 # Test script
 if __name__ == '__main__':
+    # nn = NeuralNetwork((43, 128, 128, 7), ('relu', 'relu', 'linear'))
+    # for dir_name in sorted(os.listdir('/home/troyxdp/Documents/University Work/Artificial Intelligence/Project/results/training_round_2')):
+    #     print(f'{dir_name}')
+    #     path = os.path.join('/home/troyxdp/Documents/University Work/Artificial Intelligence/Project/results/training_round_2', dir_name)
+    #     if not os.path.isdir(path):
+    #         continue
+    #     nn.load_network(path)
+    #     print(nn)
+    #     print()
 
     # Create a first neural network
     print("==================================================================================")
