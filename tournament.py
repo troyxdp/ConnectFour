@@ -75,7 +75,7 @@ def scores_to_string(scores):
     to_ret = ''
     for player in scores:
         for score in player:
-            to_ret += score
+            to_ret += str(score)
             to_ret += ' '
         to_ret = to_ret[:-1]
         to_ret += '\n'
@@ -174,9 +174,11 @@ def run_tournament(dir_name: str, result_scores={'win': 3, 'draw': 1, 'lose': 0}
 
     # Display winner
     print(f"Tournament winner is Agent {totals[0][0]}")
+    return totals[0][0]
 
 
 
 if __name__ == '__main__':
-    dir_name = '/home/troyxdp/Documents/University Work/Artificial Intelligence/Project/combined_results'
+    # dir_name = '/home/troyxdp/Documents/University Work/Artificial Intelligence/Project/combined_results' 
+    dir_name = '/home/troyxdp/Documents/University Work/Artificial Intelligence/Project/tournament'
     run_tournament(dir_name)

@@ -19,7 +19,7 @@ class ConnectFour():
 
     def is_legal_move(self, col: int):
         if col not in range(len(self.board[0])):
-            raise Exception
+            return False
         for r in range(len(self.board)):
             if self.board[r][col] == 0:
                 return True

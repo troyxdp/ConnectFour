@@ -8,7 +8,7 @@ class Agent():
             self, 
             is_player_one: bool,
             game=None, 
-            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.001, 'three_in_a_row': 0.75}
+            results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.001, 'three_in_a_row': 0.75, 'block': 1}
         ):
         # Check results scores is valid
         if results_scores['win'] is None or results_scores['loss'] is None or results_scores['draw'] is None or results_scores['ongoing'] is None or results_scores['three_in_a_row'] is None:
@@ -81,7 +81,7 @@ class Agent():
 
         # Calculate the new number of threes achieved for opponent and player and update reward accordingly
         reward += (curr_state_threes_player - self._prev_state_threes_player) * self._results_scores['three_in_a_row']
-        reward -= (curr_state_threes_opponent - self._prev_state_threes_opponent) * self._results_scores['three_in_a_row']
+        reward -= (curr_state_threes_opponent - self._prev_state_threes_opponent) * self._results_scores['three_in_a_row'] # CHANGED WEIGHTING OF REWARDS FOR THREE IN A ROW AGAINST AGENT
 
         # Update counts of number of threes
         self._prev_state_threes_player = curr_state_threes_player
@@ -120,6 +120,27 @@ class Agent():
 
 
 
+class UserAgent(Agent):
+    def __init__(
+        self,
+        is_player_one: bool,
+        results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.001, 'three_in_a_row': 1},
+        game=None
+        ):
+        super().__init__(is_player_one, game, results_scores)
+
+    def act(self, eps):
+        while True:
+            try:
+                move = int(input("Please input a move: "))
+            except:
+                print("Error: please input an integer in the range [0, 7)")
+            if self._game.is_legal_move(move):
+                return move
+            print("Error: please input a legal move")
+
+
+
 class RandomAgent(Agent):
     def __init__(
             self,  
@@ -127,7 +148,7 @@ class RandomAgent(Agent):
             results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.001, 'three_in_a_row': 1},
             game=None
         ):
-        super().__init__(game, is_player_one, results_scores)
+        super().__init__(is_player_one, game, results_scores)
 
     def act(self, eps):
         # Get number of legal moves
@@ -158,7 +179,7 @@ class ConnectFourAgent(Agent):
             results_scores={'win': 30, 'loss': -30, 'draw': -3, 'ongoing': -0.001, 'three_in_a_row': 0.75}, 
             game=None
         ):
-        super().__init__(game, is_player_one, results_scores)
+        super().__init__(is_player_one, game, results_scores)
         self.nn_pred = nn
         self.nn_target = nn
 

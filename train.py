@@ -220,17 +220,76 @@ if __name__ == '__main__':
     # Load hyperparameters file and retrieve values
     with open('hyperparameters.yaml', 'r') as f:
         hyp = yaml.safe_load(f)
-    
-    # Create trainee agent
-    num_neurons = tuple(hyp['num_neurons'])
-    activation_functions = tuple(hyp['activation_functions'])
-    trainee_agent = ConnectFourAgent(
-        is_player_one=True,
-        nn=NeuralNetwork(num_neurons, activation_functions)
-    )
 
-    # Create training agent
-    training_agent = RandomAgent(is_player_one=False)
+    # Initialize the agent that is being trained
+    trainee_agent = None
+    if input("Would you like to train a new agent from random weights? Y/n: ").lower() == 'y':
+        # Create trainee agent
+        num_neurons = tuple(hyp['num_neurons'])
+        activation_functions = tuple(hyp['activation_functions'])
+        trainee_agent = ConnectFourAgent(
+            is_player_one=True,
+            nn=NeuralNetwork(num_neurons, activation_functions)
+        )
+    else:
+        # Create trained agent
+        print("Using trained agent...")
+        dir_name = input("Please input the path to the pre-trained agent: ")
+        if not os.path.isdir(dir_name):
+            raise Exception("Please try again and enter a valid path to the pre-trained agent")
+
+        # Get number of neurons of best nmodel
+        num_neurons = np.load(os.path.join(os.getcwd(), 'best_model', 'num_neurons.npy'), allow_pickle=True)
+
+        # Get activation functions
+        activation_functions = []
+        with open(os.path.join(os.getcwd(), 'best_model', 'activation_functions.txt'), 'r') as f:
+                act_fns = f.readlines()
+                for act_fn in act_fns:
+                    activation_functions.append(act_fn.strip())
+
+        # Instantiate neural network
+        nn = NeuralNetwork(num_neurons, activation_functions)
+
+        # Load weights from best model
+        nn.load_network(os.path.join(os.getcwd(), 'best_model'))
+
+        # Create training agent
+        trainee_agent = ConnectFourAgent(
+            is_player_one=True,
+            nn=nn
+        )
+
+    # Initialize the agent to be used for training
+    if input("Would you like to train against a random agent? Y/n: ").lower() == 'y': 
+        # Create random agent
+        print("Using random agent...")
+        training_agent = RandomAgent(is_player_one=False)
+    else:
+        # Create trained agent
+        print("Using trained agent...")
+
+        # Get number of neurons of best nmodel
+        num_neurons = np.load(os.path.join(os.getcwd(), 'best_model', 'num_neurons.npy'), allow_pickle=True)
+
+        # Get activation functions
+        activation_functions = []
+        with open(os.path.join(os.getcwd(), 'best_model', 'activation_functions.txt'), 'r') as f:
+                act_fns = f.readlines()
+                for act_fn in act_fns:
+                    activation_functions.append(act_fn.strip())
+
+        # Instantiate neural network
+        best_nn = NeuralNetwork(num_neurons, activation_functions)
+
+        # Load weights from best model
+        best_nn.load_network(os.path.join(os.getcwd(), 'best_model'))
+
+        # Create training agent
+        training_agent = ConnectFourAgent(
+            is_player_one=True,
+            nn=best_nn
+        )
 
     # Get save directory
     save_dir = input("Please input the name of a directory to save the trained model to: ")
