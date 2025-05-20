@@ -71,6 +71,17 @@ def load_agents(dir_name: str):
     agents.append(('random', RandomAgent(is_player_one=True)))
     return agents
 
+def scores_to_string(scores):
+    to_ret = ''
+    for player in scores:
+        for score in player:
+            to_ret += score
+            to_ret += ' '
+        to_ret = to_ret[:-1]
+        to_ret += '\n'
+    to_ret = to_ret[;-1]
+    return to_ret
+
 def run_tournament(dir_name: str, result_scores={'win': 3, 'draw': 1, 'lose': 0}):
     # Load agents
     agents = load_agents(dir_name)
@@ -120,10 +131,11 @@ def run_tournament(dir_name: str, result_scores={'win': 3, 'draw': 1, 'lose': 0}
                 scores[j][i] += result_scores['draw']
                 print("Draw!")
             print('')
+            
     with open(os.path.join(dir_name, 'results.txt'), 'w') as f:
         print("Scores:")
-        print(scores)
-        f.write(str(scores))
+        print(scores_to_string(scores))
+        f.write(scores_to_string(scores))
 
         # Get totals
         for r in range(len(scores)):
