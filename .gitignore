@@ -2,3 +2,4 @@ architecture/
 .venv/
 __pycache__/
 results/
+combined_results/

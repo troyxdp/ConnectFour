@@ -155,7 +155,7 @@ class NeuralNetwork():
             # gradient for weights = delta_l . (a_l-1)^T where a_l-1 is the activated outputs of the previous layer
             grad_w[-l] = np.outer(d, self.layers[-l-1]) 
         # Return gradients
-        return grad_w, grad_w
+        return grad_b, grad_w
 
     def update_network(self, lr, error_prime, use_gradient_clipping=True, clip_value=1.0):
         # delta = Grad(Cost(x)) * activation_function_prime(z_L)
@@ -216,9 +216,9 @@ class NeuralNetwork():
         with open(os.path.join(dir_path, 'activation_functions.txt'), 'w') as f:
             to_write = ''
             for activation_function in self.activation_functions:
-                if activation_function == self.sigmoid:
+                if activation_function.__name__ == 'sigmoid':
                     to_write += 'sigmoid\n'
-                elif activation_function == self.relu:
+                elif activation_function.__name__ == 'relu':
                     to_write += 'relu\n'
                 else:
                     to_write += 'linear\n'
