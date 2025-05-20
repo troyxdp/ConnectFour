@@ -79,7 +79,7 @@ def scores_to_string(scores):
             to_ret += ' '
         to_ret = to_ret[:-1]
         to_ret += '\n'
-    to_ret = to_ret[;-1]
+    to_ret = to_ret[:-1]
     return to_ret
 
 def run_tournament(dir_name: str, result_scores={'win': 3, 'draw': 1, 'lose': 0}):
